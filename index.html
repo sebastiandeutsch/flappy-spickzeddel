@@ -1,0 +1,246 @@
+<html>
+  <head>
+    <style>
+      #frame {
+        width: 1000px;
+        height: 600px;
+        overflow: hidden;
+        background-image: url('assets/img/bg.png');
+        background-size: cover;
+        position: relative;
+      }
+
+      #bird {
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+
+      #pipe-1-top,
+      #pipe-2-top,
+      #pipe-3-top {
+        position: absolute;
+      }
+
+      #pipe-1-bottom,
+      #pipe-2-bottom,
+      #pipe-3-bottom {
+        position: absolute;
+        transform: scaleY(-1);
+      }
+
+      #gameover {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-left: -122px;
+        margin-top: -66px;
+      }
+
+      #score {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: white;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 40px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="frame">
+      <img id="bird" src="assets/img/clumsy.png" >
+      <img id="pipe-1-top" src="assets/img/pipe.png" >
+      <img id="pipe-1-bottom" src="assets/img/pipe.png" >
+
+      <img id="pipe-2-top" src="assets/img/pipe.png" >
+      <img id="pipe-2-bottom" src="assets/img/pipe.png" >
+
+      <img id="pipe-3-top" src="assets/img/pipe.png" >
+      <img id="pipe-3-bottom" src="assets/img/pipe.png" >
+
+      <img id="gameover" src="assets/img/gameover.png" >
+
+      <div id="score">0</div>
+    </div>
+
+    <script>
+      var backgroundElement = document.getElementById('frame');
+      var birdElement = document.getElementById('bird');
+      var gameoverElement = document.getElementById('gameover');
+      var scoreElement = document.getElementById('score');
+
+      var gameState = "PLAYING";
+      var backgroundPosition = 0;
+      var birdX = 100;
+      var birdY = (600-60) / 2;
+      var score = 0;
+
+      var pipes = [{
+        selector: 'pipe-1',
+        left: 148*8,
+        middle: 100,
+        distance: 200
+      }, {
+        selector: 'pipe-2',
+        left: 148*8 + 148*3,
+        middle: 100,
+        distance: 200
+      }, {
+        selector: 'pipe-3',
+        left: 148*8 + 148*6,
+        middle: 100,
+        distance: 200
+      }];
+
+      /* AABB */
+      function boxCollision(box1, box2) {
+        if (
+            (box1.x < box2.x + box2.width) &&
+            (box1.x + box1.width > box2.x) &&
+            (box1.y < box2.y + box2.height) &&
+            (box1.y + box1.height > box2.y)
+        ) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      function moveBirdUp() {
+        birdY = birdY - 10;
+      }
+
+      function moveBirdDown() {
+        birdY = birdY + 10;
+      }
+
+      function startNewGame() {
+        gameState = "PLAYING";
+        birdX = 100;
+        birdY = (600-60) / 2;
+        score = 0;
+
+        pipes[0].left = 148*8;
+        pipes[0].middle = Math.floor(Math.random() * (600 - 200) + 100);
+        pipes[0].distance = Math.floor(Math.random() * 200) + 100;
+
+        pipes[1].left = 148*8 + 148*3;
+        pipes[1].middle = Math.floor(Math.random() * (600 - 200) + 100);
+        pipes[1].distance = Math.floor(Math.random() * 200) + 100;
+
+        pipes[2].left = 148*8 + 148*6;
+        pipes[2].middle = Math.floor(Math.random() * (600 - 200) + 100);
+        pipes[2].distance = Math.floor(Math.random() * 200) + 100;
+      }
+
+      function handleKeyboardEvent(event) {
+        if (gameState == "GAMEOVER") {
+          startNewGame();
+        }
+
+        if (event.keyCode == 38) {
+          moveBirdUp();
+        }
+        if (event.keyCode == 40) {
+          moveBirdDown();
+        }
+      }
+
+      function moveBackground() {
+        backgroundPosition = backgroundPosition - 1;
+        backgroundElement.style.backgroundPositionX = backgroundPosition + "px";
+      }
+
+      function moveBird() {
+        birdElement.style.left = birdX + "px";
+        birdElement.style.top = birdY + "px";
+      }
+
+      function movePipe(pipe) {
+        var pipeTopElement = document.getElementById(pipe.selector + '-top');
+        var pipeBottomElement = document.getElementById(pipe.selector + '-bottom');
+
+        pipe.left = pipe.left - 2;
+
+        if (pipe.left < -148) {
+          pipe.left = 148*8;
+
+          pipe.middle = Math.floor(Math.random() * (600 - 200) + 100);
+          pipe.distance = Math.floor(Math.random() * 200) + 100;
+
+          score = score + 1;
+          scoreElement.innerHTML = score;
+        }
+
+        pipeTopElement.style.left = pipe.left + "px";
+        pipeTopElement.style.top = (-1664 + pipe.middle) + "px";
+
+        pipeBottomElement.style.left = pipe.left + "px";
+        pipeBottomElement.style.top = (pipe.middle + pipe.distance) + "px";
+      }
+
+      function collisionWithPipe(pipe) {
+        if (boxCollision({
+              x: birdX,
+              y: birdY,
+              width: 85,
+              height: 60
+            },
+            {
+              x: pipe.left,
+              y: -1664 + pipe.middle,
+              width: 148,
+              height: 1664
+            })
+        ) {
+          gameState = "GAMEOVER";
+        }
+
+        if (boxCollision({
+              x: birdX,
+              y: birdY,
+              width: 85,
+              height: 60
+            },
+            {
+              x: pipe.left,
+              y: pipe.middle + pipe.distance,
+              width: 148,
+              height: 1664
+            })
+        ) {
+          gameState = "GAMEOVER";
+        }
+      }
+
+      function gameLoop() {
+        moveBackground();
+        movePipe(pipes[0]);
+        movePipe(pipes[1]);
+        movePipe(pipes[2]);
+
+        if (gameState == "PLAYING") {
+          birdElement.style.display = "block";
+          gameoverElement.style.display = "none";
+          scoreElement.style.display = "block";
+          moveBird();
+          collisionWithPipe(pipes[0]);
+          collisionWithPipe(pipes[1]);
+          collisionWithPipe(pipes[2]);
+        } else {
+          birdElement.style.display = "none";
+          gameoverElement.style.display = "block";
+          scoreElement.style.display = "none";
+        }
+      }
+
+      startNewGame();
+      window.addEventListener('keydown', handleKeyboardEvent);
+      setInterval(gameLoop, 1000 / 60);
+
+
+    </script>
+  </body>
+</html>
